@@ -1,6 +1,51 @@
 # app.py - PisoUno Coin Detection System
-# Old and New 1 Peso Coin Detection, Classification, and Counting System
+# Auto-installs missing packages at runtime
 
+import subprocess
+import sys
+import importlib
+import os
+
+# Function to install packages
+def install_package(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Required packages
+required_packages = [
+    'opencv-python',
+    'numpy',
+    'scikit-learn',
+    'Pillow'
+]
+
+# Check and install missing packages
+missing_packages = []
+for package in required_packages:
+    package_name = package.replace('-', '_')
+    if package_name == 'opencv_python':
+        package_name = 'cv2'
+    try:
+        importlib.import_module(package_name)
+    except ImportError:
+        missing_packages.append(package)
+
+if missing_packages:
+    import streamlit as st
+    st.warning(f"Installing missing packages: {', '.join(missing_packages)}")
+    st.info("This will only happen once. Please wait...")
+    
+    for package in missing_packages:
+        try:
+            install_package(package)
+            st.write(f"Installed: {package}")
+        except Exception as e:
+            st.error(f"Failed to install {package}: {e}")
+    
+    st.success("All packages installed! Please refresh the page.")
+    st.button("Refresh App", on_click=lambda: None)
+    st.stop()
+
+# Now import all packages
 import streamlit as st
 import cv2
 import numpy as np
@@ -8,13 +53,12 @@ from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from PIL import Image
-import os
 import tempfile
 import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================
-# Custom HOG feature extraction (replaces scikit-image)
+# Custom HOG feature extraction
 # ============================================
 
 def compute_hog_features(gray_image, cells_per_block=(2, 2), pixels_per_cell=(8, 8), orientations=9):
